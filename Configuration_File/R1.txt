@@ -1,0 +1,79 @@
+Router 1 ACL, Class-map and Policy-map
+
+class-map match-any gold
+ match access-group 142
+ match protocol rtp
+ match access-group 144
+ match ip dscp ef
+class-map match-any best-effort
+ match access-group 143
+ match ip dscp default
+class-map match-any premium
+ match access-group 141
+ match ip dscp af11
+!
+policy-map QOS_IN
+ class gold
+  set ip dscp ef
+ class premium
+  set ip dscp af11
+ class best-effort
+  set ip dscp default
+policy-map QOS_OUT
+ class gold
+  priority 90
+ class premium
+  bandwidth 10
+ class best-effort
+  bandwidth 25
+!
+!
+!
+!        
+!
+!
+interface GigabitEthernet0/0/0
+ description Connection to Internet
+ ip address 139.6.19.154 255.255.255.224
+ ip nat outside
+ negotiation auto
+ service-policy input QOS_IN
+!
+interface GigabitEthernet0/0/1
+ description Connection to LANA
+ ip address 10.6.0.1 255.255.255.0
+ ip nat inside
+ negotiation auto
+ service-policy input QOS_IN
+!
+interface Serial0/1/0
+ description LAN B
+ ip address 10.6.1.1 255.255.255.0
+ clock rate 125000
+ service-policy output QOS_OUT
+!
+interface Serial0/1/1
+ no ip address
+ shutdown
+!
+interface GigabitEthernet0
+ vrf forwarding Mgmt-intf
+ no ip address
+ shutdown
+ negotiation auto
+!
+ip nat inside source list 1 interface GigabitEthernet0/0/0 overload
+ip forward-protocol nd
+ip http server
+ip http authentication local
+ip http secure-server
+ip tftp source-interface GigabitEthernet0
+ip route 0.0.0.0 0.0.0.0 GigabitEthernet0/0/0
+ip route 10.6.2.0 255.255.255.0 Serial0/1/0
+!
+!
+access-list 1 permit 10.6.0.0 0.0.255.255
+access-list 141 permit udp 10.6.0.0 0.0.0.255 10.6.2.0 0.0.0.255 range 5060 5061
+access-list 142 permit udp 10.6.0.0 0.0.0.255 10.6.2.0 0.0.0.255 eq 5004
+access-list 143 permit udp 10.6.0.0 0.0.0.255 10.6.2.0 0.0.0.255 eq 5001
+access-list 144 permit udp 10.6.0.0 0.0.0.255 10.6.2.0 0.0.0.255 range 16350 32768

@@ -1,0 +1,75 @@
+Router 1 ACL, Class-map and Policy-map
+
+class-map match-any gold
+ match access-group 101
+ match protocol rtp
+ match dscp ef
+class-map match-all BE
+ match access-group 102
+ match dscp default
+class-map match-all Premium
+ match access-group 100
+ match dscp af11
+!
+policy-map QOS_IN
+ class gold
+  set ip dscp ef
+ class Premium
+  set ip dscp af11
+ class BE
+  set ip dscp default
+policy-map QOS_OUT
+ class gold
+  priority 50
+ class Premium
+  bandwidth percent 10
+ class BE
+  police cir 65000 bc 32500 be 65000
+   conform-action transmit
+   exceed-action drop
+   violate-action drop
+  bandwidth percent 25
+!
+!
+!
+!        
+!
+!
+interface GigabitEthernet0/0/0
+ description Lan C
+ ip address 10.6.2.1 255.255.255.0
+ negotiation auto
+ service-policy input QOS_IN
+!
+interface GigabitEthernet0/0/1
+ no ip address
+ shutdown
+ negotiation auto
+!
+interface Serial0/1/0
+ description LAN B
+ ip address 10.6.1.2 255.255.255.0
+ service-policy output QOS_OUT
+!
+interface Serial0/1/1
+ no ip address
+ shutdown
+!
+interface GigabitEthernet0
+ vrf forwarding Mgmt-intf
+ no ip address
+ shutdown
+ negotiation auto
+!
+ip forward-protocol nd
+ip http server
+ip http authentication local
+ip http secure-server
+ip tftp source-interface GigabitEthernet0
+ip route 0.0.0.0 0.0.0.0 Serial0/1/0
+ip route 10.6.2.0 255.255.255.0 Serial0/1/0
+!
+!
+access-list 100 permit udp 10.6.2.0 0.0.0.255 10.6.0.0 0.0.0.255 eq 5060
+access-list 101 permit udp 10.6.2.0 0.0.0.255 10.6.0.0 0.0.0.255 range 16350 32768
+access-list 102 permit udp 10.6.2.0 0.0.0.255 10.6.0.0 0.0.0.255 eq 5001
